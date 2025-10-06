@@ -1,0 +1,17 @@
+*****************************
+REGIONAL SALES SUMMARY REPORT
+*****************************
+Region     Salesperson  Amount
+------     -----------  ------
+EAST      David      5,000.00
+EAST      Charlie   12,000.00
+EAST      Edward     3,000.00
+**REGION SUBTOTAL   20,000.00
+NORTH     Anna       8,000.00
+NORTH     Bob        7,500.00
+**REGION SUBTOTAL   15,500.00
+WEST      Frank      4,000.00
+**REGION SUBTOTAL    4,000.00
+===================================================
+GRAND TOTAL:   39,500.00
+*****************************

@@ -1,0 +1,6 @@
+1001John Kim       IT        0007800000
+1002Alice Chan     Web       0009500000
+1003Carol Lim      Product   0011000000
+1004Dave Koh       Web       0007255075
+1005Eve Tan        AI        0012000025
+1006Lady Gage      Web       0008100000

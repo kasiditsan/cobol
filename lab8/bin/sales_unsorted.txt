@@ -1,0 +1,6 @@
+EAST      David     0500000
+NORTH     Anna      0800000
+WEST      Frank     0400000
+EAST      Charlie   1200000
+NORTH     Bob       0750000
+EAST      Edward    0300000
