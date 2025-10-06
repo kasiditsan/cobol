@@ -1,0 +1,3 @@
+ID: P001   , NAME :    NOTEBOOK  , PRICE:   25,000.50
+ID: P002   , NAME :    MOUSE     , PRICE:      500.99
+ID: P003   , NAME :    KEYBOARD  , PRICE:      800.00
