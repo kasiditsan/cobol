@@ -82,7 +82,14 @@
        01 WS-SUBTOTAL-SALARY PIC 9(7)V99.
        01 WS-TOTAL-SALARY PIC 9(7)V99.
        01 WS-SUBTOTAL-DEPT PIC 9(2).
-       01 WS-TOTAL-DEPT PIC 9(2).
+       01 WS-TOTAL-DEPT PIC 9(3).
+       01 TEMP-BACKUP-REC.
+               05  BK-EMP-ID     PIC X(5).
+               05  BK-EMP-NAME   PIC X(30).
+               05  BK-DEPT-NAME  PIC X(20).
+               05  BK-SALARY     PIC 9(7)V99.
+
+           01  BK-REC-REDEF REDEFINES TEMP-BACKUP-REC PIC X(80).
 
        01 WS-EOF-FLAG        PIC A(1) VALUE 'N'.
           88 WS-END-OF-FILE  VALUE 'Y'.
@@ -165,17 +172,17 @@
            05  EQUAL-LINE-S.
                10  FILLER          PIC X(80)   VALUE ALL "=".
            05  DETAIL-LINE-S.
-               10  WS-DEPT       PIC 9(5)   .
-               10  FILLER          PIC X(10)   VALUE "       ".
-               10  WS-DEPT-AMOUNT     PIC X(20)   .
-               10  FILLER          PIC X(10)   VALUE "  ".
-               10  TOTAL-DEPT-SALARY    PIC Z,ZZZ,ZZZ.99   .
+               10  WS-DEPT       PIC X(5)   .
+               10  FILLER          PIC X(15)   VALUE SPACES.
+               10  WS-DEPT-AMOUNT     PIC X(13)   .
+               10  FILLER          PIC X(10)   VALUE SPACES.
+               10  SUBTOTAL-SALARY    PIC Z,ZZZ,ZZZ.99   .
            05 DETAIL-TOTAL.
-               10 FILLER PIC X(20) VALUE "TOTAL:" .
-               10 FILLER PIC X(40) VALUE ALL SPACES.
-               10 TOTAL-DEPT PIC X(20)  .
+               10 FILLER PIC X(7) VALUE "TOTAL:" .
+               10 FILLER PIC X(13) VALUE ALL SPACES.
+               10 TOTAL-DEPT PIC 9(3)  .
                10 FILLER PIC X(20) VALUE ALL SPACES.
-               10 TOTAL-SALARY PIC X(20)  .
+               10 TOTAL-SALARY PIC Z,ZZZ,ZZZ.99  .
        PROCEDURE DIVISION.
        MAIN-PROCEDURE.
            PERFORM MENU-LOOP
@@ -319,13 +326,31 @@
 
 
        SUMMARY-REPORT-PROC.
+           MOVE FUNCTION CURRENT-DATE TO WS-CURRENT-DATE.
+           MOVE WS-YEAR TO WS-YEAR-DIS
+           MOVE WS-MONTH TO WS-MONTH-DIS
+           MOVE WS-DAY TO WS-DAY-DIS
+           MOVE WS-HOUR TO WS-HOUR-DIS
+           MOVE WS-MINUTE TO WS-MINUTE-DIS
+           MOVE WS-SECOND TO WS-SECOND-DIS.
+           MOVE WS-DATE TO WS-DATE-DIS-S.
+           MOVE 0 TO TOTAL-DEPT
+           MOVE 0 TO TOTAL-SALARY
            SORT TEMP-SORT
            ON ASCENDING KEY DEPT-NAME
            USING EMP-MASTER
            GIVING EMP-SORTED.
-           
+
            OPEN OUTPUT SUMMARY-REPORT
            OPEN INPUT EMP-SORTED
+
+           WRITE SUMMARY-REC FROM HEADER-S
+           WRITE SUMMARY-REC FROM EQUAL-LINE-S
+           WRITE SUMMARY-REC FROM SUBHEADER-S
+           WRITE SUMMARY-REC FROM DASH-LINE-SPACE
+
+
+           MOVE 'N' TO EOF-FLAG
            PERFORM UNTIL EOF-FLAG = 'Y'
             READ EMP-SORTED
            AT END
@@ -334,29 +359,69 @@
             IF WS-PREV-DEPT-ID NOT = DEPT-NAME-S
 
                    IF WS-PREV-DEPT-ID NOT = SPACES
-                       DISPLAY 
-                      WS-PREV-DEPT-ID WS-TOTAL-SALARY" "WS-SUBTOTAL-DEPT
+                       MOVE WS-PREV-DEPT-ID TO WS-DEPT
+                       MOVE WS-SUBTOTAL-DEPT TO WS-DEPT-AMOUNT
+                       MOVE WS-SUBTOTAL-SALARY TO SUBTOTAL-SALARY
+                       WRITE SUMMARY-REC FROM DETAIL-LINE-S
                        MOVE 0 TO WS-SUBTOTAL-SALARY
                        MOVE 0 TO WS-SUBTOTAL-DEPT
+
                    END-IF
-                       MOVE 0 TO WS-TOTAL-SALARY
+
                        MOVE DEPT-NAME-S TO WS-PREV-DEPT-ID
             END-IF
-            ADD 1 TO WS-SUBTOTAL-DEPT
-            ADD 1 TO WS-TOTAL-DEPT
-            ADD SALARY-S TO WS-SUBTOTAL-SALARY
-            ADD SALARY TO WS-TOTAL-SALARY
-           END-PERFORM
 
+               ADD 1 TO WS-SUBTOTAL-DEPT
+               ADD 1 TO WS-TOTAL-DEPT
+               ADD SALARY-S TO WS-SUBTOTAL-SALARY
+               ADD SALARY-S TO WS-TOTAL-SALARY
+            END-PERFORM
+           MOVE WS-PREV-DEPT-ID TO WS-DEPT
+           MOVE WS-SUBTOTAL-DEPT TO WS-DEPT-AMOUNT
+           MOVE WS-SUBTOTAL-SALARY TO SUBTOTAL-SALARY
+           WRITE SUMMARY-REC FROM DETAIL-LINE-S
+           MOVE WS-TOTAL-SALARY TO TOTAL-SALARY
+           MOVE WS-TOTAL-DEPT TO TOTAL-DEPT
 
-      *>      DISPLAY "Department Total: "WS-PREV-DEPT-ID WS-DEPT-TOTAL
+           WRITE SUMMARY-REC FROM DASH-LINE
            WRITE SUMMARY-REC FROM DETAIL-TOTAL
+           WRITE SUMMARY-REC FROM EQUAL-LINE-S
            MOVE " " TO WS-PREV-DEPT-ID.
-           
+           MOVE 0 TO WS-TOTAL-SALARY
+           MOVE 0 TO WS-SUBTOTAL-DEPT
+           MOVE 0 TO WS-SUBTOTAL-SALARY
+           DISPLAY "*********CREATED SUMMARY REPORT***********"
+           CLOSE SUMMARY-REPORT
+           CLOSE EMP-SORTED.
 
 
        BACKUP-EMPLOYEE.
-           DISPLAY "Backup - Not yet implemented".
+           DISPLAY "Starting employee backup..."
+           OPEN INPUT EMP-MASTER
+           OPEN OUTPUT BACKUP-FILE
+
+           MOVE 'N' TO EOF-FLAG
+
+           PERFORM UNTIL EOF-FLAG = 'Y'
+                READ EMP-MASTER NEXT RECORD
+                    AT END
+                        MOVE 'Y' TO EOF-FLAG
+                    NOT AT END
+                        MOVE EMP-ID     TO BK-EMP-ID
+                        MOVE EMP-NAME   TO BK-EMP-NAME
+                        MOVE DEPT-NAME  TO BK-DEPT-NAME
+                        MOVE SALARY     TO BK-SALARY
+                        WRITE BACKUP-RECORD FROM BK-REC-REDEF
+                    END-READ
+            END-PERFORM
+
+            CLOSE EMP-MASTER
+            CLOSE BACKUP-FILE
+
+            MOVE "BACKUP" TO WS-ACTION
+            PERFORM LOG-HR-ACTION
+
+            DISPLAY "Employee backup completed successfully.".
 
        LOG-HR-ACTION.
            OPEN EXTEND HR-LOG
@@ -367,5 +432,44 @@
            WRITE LOG-RECORD
            END-WRITE
            CLOSE HR-LOG.
+       BATCH-UPDATE.
+           DISPLAY "Starting batch update..."
+           OPEN INPUT INPUT-SEQ
+           OPEN I-O EMP-MASTER
+           MOVE 'N' TO EOF-FLAG
 
+           PERFORM UNTIL EOF-FLAG = 'Y'
+               READ INPUT-SEQ
+                   AT END MOVE 'Y' TO EOF-FLAG
+               NOT AT END
+                   MOVE S-EMP-ID     TO EMP-ID
+                   MOVE S-EMP-NAME   TO EMP-NAME
+                   MOVE S-DEPT-NAME  TO DEPT-NAME
+                   MOVE S-SALARY     TO SALARY
+
+                   READ EMP-MASTER KEY IS EMP-ID
+                       INVALID KEY
+                           WRITE EMP-RECORD
+                               INVALID KEY
+                                   DISPLAY
+                                   "Error writing record for ID " EMP-ID
+                               NOT INVALID KEY
+                                   MOVE "ADD" TO WS-ACTION
+                                   PERFORM LOG-HR-ACTION
+                               END-WRITE
+                           NOT INVALID KEY
+                               REWRITE EMP-RECORD
+                                   INVALID KEY
+                                       DISPLAY
+                                 "Error updating record for ID " EMP-ID
+                                   NOT INVALID KEY
+                                       MOVE "UPDATE" TO WS-ACTION
+                                       PERFORM LOG-HR-ACTION
+                                   END-REWRITE
+                           END-READ
+                   END-PERFORM
+
+                   CLOSE INPUT-SEQ
+                   CLOSE EMP-MASTER
+                   DISPLAY "Batch update completed.".
        END PROGRAM YOUR-PROGRAM-NAME.
