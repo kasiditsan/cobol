@@ -25,10 +25,22 @@
                ORGANIZATION IS LINE SEQUENTIAL.
            SELECT HR-LOG ASSIGN TO "HR_LOG.DAT"
                ORGANIZATION IS SEQUENTIAL.
-
+           SELECT EMP-SORTED ASSIGN TO 'EMP-SORTED.DAT'
+               ORGANIZATION IS SEQUENTIAL.
+           SELECT TEMP-SORT ASSIGN TO 'TEMP-SORT.tmp'
+               ORGANIZATION IS SEQUENTIAL.
 
        DATA DIVISION.
        FILE SECTION.
+       SD TEMP-SORT.
+       01 TEMP-REC PIC X(44).
+
+       FD EMP-SORTED.
+       01 EMP-SORTED-REC.
+           05 EMP-ID-S       PIC 9(5).
+           05 EMP-NAME-S     PIC X(20).
+           05 DEPT-NAME-S    PIC X(10).
+           05 SALARY-S       PIC 9(7)V99.
 
        FD EMP-MASTER.
        01 EMP-RECORD.
@@ -66,10 +78,17 @@
        01 PREV-DEPT      PIC X(10) VALUE SPACES.
        01 WS-ACTION      PIC X(10) VALUE SPACES.
        01 WS-LOG-LINE    PIC X(80) VALUE SPACES.
+       01 WS-PREV-DEPT-ID PIC X(10).
+       01 WS-SUBTOTAL-SALARY PIC 9(7)V99.
+       01 WS-TOTAL-SALARY PIC 9(7)V99.
+       01 WS-SUBTOTAL-DEPT PIC 9(2).
+       01 WS-TOTAL-DEPT PIC 9(2).
 
        01 WS-EOF-FLAG        PIC A(1) VALUE 'N'.
           88 WS-END-OF-FILE  VALUE 'Y'.
+
        01 WS-CURRENT-DATE PIC X(21).
+
        01 WS-DATE-TIME REDEFINES WS-CURRENT-DATE.
              10 WS-YEAR        PIC 9(4).
              10 WS-MONTH       PIC 9(2).
@@ -98,11 +117,11 @@
                10 WS-PAGE PIC X(10) VALUE "  PAGE : 1".
            05  SUBHEADER.
                10  FILLER          PIC X(10)  VALUE "EMP ID".
-               10  FILLER          PIC X(10)  VALUE "       ".
+               10  FILLER          PIC X(10)  VALUE ALL SPACES.
                10  FILLER          PIC X(10)  VALUE "NAME".
-               10  FILLER          PIC X(10)  VALUE "          ".
+               10  FILLER          PIC X(10)  VALUE ALL SPACES.
                10  FILLER          PIC X(10)  VALUE "  DEPT".
-               10  FILLER          PIC X(10)  VALUE "         ".
+               10  FILLER          PIC X(16)  VALUE ALL SPACES.
                10  FILLER          PIC X(10)  VALUE "SALARY".
            05  DASH-LINE.
                10  FILLER          PIC X(80)  VALUE ALL "-".
@@ -119,6 +138,44 @@
            05  FOOTER.
                10  FILLER          PIC X(80)   VALUE ALL SPACES.
                10  FILLER          PIC X(20)   VALUE "END OF REPORT".
+
+       01 SUMMARY-REPORT-DEATAIL.
+           05 HEADER-S.
+               10 COM-NAME-S PIC X(15) VALUE "EMPLOYEE REPORT".
+               10 FILLER PIC X(10) VALUE ALL SPACES.
+.              10 WS-DATE-DIS-S PIC X(20).
+               10 FILLER PIC X(10) VALUE ALL SPACES.
+               10 WS-PAGE-S PIC X(10) VALUE "  PAGE : 1".
+
+           05  SUBHEADER-S.
+               10  FILLER          PIC X(10)  VALUE "DEPT".
+               10  FILLER          PIC X(10)  VALUE ALL SPACES.
+               10  FILLER          PIC X(10)  VALUE "EMP AMOUNT".
+               10  FILLER          PIC X(10)  VALUE ALL SPACES.
+               10  FILLER          PIC X(20)  VALUE "TOTAL DEPT SALARY".
+
+           05  DASH-LINE-SPACE.
+               10  FILLER          PIC X(10)  VALUE ALL "-".
+               10  FILLER          PIC X(10)  VALUE ALL SPACES.
+               10  FILLER          PIC X(10)  VALUE ALL "-".
+               10  FILLER          PIC X(10)  VALUE ALL SPACES.
+               10  FILLER          PIC X(20)  VALUE ALL "-".
+           05  DASH-LINE-ALL.
+               10 FILLER           PIC X(50)  VALUE ALL "- ".
+           05  EQUAL-LINE-S.
+               10  FILLER          PIC X(80)   VALUE ALL "=".
+           05  DETAIL-LINE-S.
+               10  WS-DEPT       PIC 9(5)   .
+               10  FILLER          PIC X(10)   VALUE "       ".
+               10  WS-DEPT-AMOUNT     PIC X(20)   .
+               10  FILLER          PIC X(10)   VALUE "  ".
+               10  TOTAL-DEPT-SALARY    PIC Z,ZZZ,ZZZ.99   .
+           05 DETAIL-TOTAL.
+               10 FILLER PIC X(20) VALUE "TOTAL:" .
+               10 FILLER PIC X(40) VALUE ALL SPACES.
+               10 TOTAL-DEPT PIC X(20)  .
+               10 FILLER PIC X(20) VALUE ALL SPACES.
+               10 TOTAL-SALARY PIC X(20)  .
        PROCEDURE DIVISION.
        MAIN-PROCEDURE.
            PERFORM MENU-LOOP
@@ -164,9 +221,10 @@
            WRITE EMP-RECORD
                INVALID KEY
                DISPLAY "Employee ID already exists"
+               MOVE "ADD" TO WS-ACTION
+               PERFORM LOG-HR-ACTION
            END-WRITE.
-           MOVE "ADD" TO WS-ACTION.
-           PERFORM LOG-HR-ACTION.
+
            CLOSE EMP-MASTER.
 
 
@@ -185,9 +243,10 @@
            ACCEPT SALARY.
            REWRITE EMP-RECORD
                INVALID KEY DISPLAY "Error updating record"
+               MOVE "EDIT" TO WS-ACTION
+               PERFORM LOG-HR-ACTION
            END-REWRITE.
-           MOVE "EDIT" TO WS-ACTION.
-           PERFORM LOG-HR-ACTION.
+
            CLOSE EMP-MASTER.
 
        DELETE-EMPLOYEE.
@@ -196,9 +255,11 @@
            ACCEPT EMP-ID.
            DELETE EMP-MASTER RECORD
                INVALID KEY DISPLAY "Employee Not Found"
+               MOVE "DELETE" TO WS-ACTION
+               PERFORM LOG-HR-ACTION
            END-DELETE.
-           MOVE "DELETE" TO WS-ACTION.
-           PERFORM LOG-HR-ACTION.
+
+
            CLOSE EMP-MASTER.
 
        SEARCH-EMPLOYEE.
@@ -207,6 +268,7 @@
            ACCEPT EMP-ID.
            READ EMP-MASTER KEY IS EMP-ID
                INVALID KEY DISPLAY "Employee Not Found"
+
                NOT INVALID KEY
                    DISPLAY "ID: " EMP-ID
                    DISPLAY "Name: " EMP-NAME
@@ -227,36 +289,71 @@
            MOVE WS-SECOND TO WS-SECOND-DIS.
            MOVE WS-DATE TO WS-DATE-DIS.
 
-           WRITE  REPORT-RECORD FROM HEADER.
+           WRITE REPORT-RECORD FROM HEADER.
+           WRITE REPORT-RECORD FROM EQUAL-LINE.
            WRITE REPORT-RECORD FROM SUBHEADER.
            WRITE REPORT-RECORD FROM DASH-LINE.
-           
-                  PERFORM UNTIL EOF-FLAG = 'Y'
-           START EMP-MASTER KEY IS
-           READ EMP-MASTER
-           
+
+           PERFORM UNTIL EOF-FLAG = 'Y'
+
+               READ EMP-MASTER NEXT RECORD
+
                AT END
                    MOVE 'Y' TO EOF-FLAG
                NOT AT END
-                   *> Move file data to report working storage
+
                    MOVE EMP-ID TO WS-EMP-ID
                    MOVE EMP-NAME TO WS-EMP-NAME
                    MOVE DEPT-NAME TO WS-DEPT-NAME
                    MOVE SALARY TO WS-SALARY
-
-                   *> Write detail line to report
                    WRITE REPORT-RECORD FROM DETAIL-LINE
            END-READ
        END-PERFORM
 
-           CLOSE EMP-MASTER
+
            WRITE REPORT-RECORD FROM EQUAL-LINE.
-           WRITE  REPORT-RECORD FROM FOOTER.
+           WRITE REPORT-RECORD FROM FOOTER.
+           DISPLAY "*********CREATED EMPLOYEE REPORT***********"
+           CLOSE EMP-MASTER.
            CLOSE EMP-REPORT.
 
 
        SUMMARY-REPORT-PROC.
-           DISPLAY "Summary Report - Not yet implemented".
+           SORT TEMP-SORT
+           ON ASCENDING KEY DEPT-NAME
+           USING EMP-MASTER
+           GIVING EMP-SORTED.
+           
+           OPEN OUTPUT SUMMARY-REPORT
+           OPEN INPUT EMP-SORTED
+           PERFORM UNTIL EOF-FLAG = 'Y'
+            READ EMP-SORTED
+           AT END
+            MOVE 'Y' TO EOF-FLAG
+           NOT AT END
+            IF WS-PREV-DEPT-ID NOT = DEPT-NAME-S
+
+                   IF WS-PREV-DEPT-ID NOT = SPACES
+                       DISPLAY 
+                      WS-PREV-DEPT-ID WS-TOTAL-SALARY" "WS-SUBTOTAL-DEPT
+                       MOVE 0 TO WS-SUBTOTAL-SALARY
+                       MOVE 0 TO WS-SUBTOTAL-DEPT
+                   END-IF
+                       MOVE 0 TO WS-TOTAL-SALARY
+                       MOVE DEPT-NAME-S TO WS-PREV-DEPT-ID
+            END-IF
+            ADD 1 TO WS-SUBTOTAL-DEPT
+            ADD 1 TO WS-TOTAL-DEPT
+            ADD SALARY-S TO WS-SUBTOTAL-SALARY
+            ADD SALARY TO WS-TOTAL-SALARY
+           END-PERFORM
+
+
+      *>      DISPLAY "Department Total: "WS-PREV-DEPT-ID WS-DEPT-TOTAL
+           WRITE SUMMARY-REC FROM DETAIL-TOTAL
+           MOVE " " TO WS-PREV-DEPT-ID.
+           
+
 
        BACKUP-EMPLOYEE.
            DISPLAY "Backup - Not yet implemented".
