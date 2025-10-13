@@ -83,6 +83,8 @@
        01 WS-TOTAL-SALARY PIC 9(7)V99.
        01 WS-SUBTOTAL-DEPT PIC 9(2).
        01 WS-TOTAL-DEPT PIC 9(3).
+       01 WS-USER-ROLE PIC X(10) VALUE SPACES.
+
        01 TEMP-BACKUP-REC.
                05  BK-EMP-ID     PIC X(5).
                05  BK-EMP-NAME   PIC X(30).
@@ -185,37 +187,65 @@
                10 TOTAL-SALARY PIC Z,ZZZ,ZZZ.99  .
        PROCEDURE DIVISION.
        MAIN-PROCEDURE.
+
+           DISPLAY "Enter role (HR / ADMIN):"
+           ACCEPT WS-USER-ROLE.
+
            PERFORM MENU-LOOP
            STOP RUN.
 
        MENU-LOOP.
-           DISPLAY "1. Add Employee"
-           DISPLAY "2. Edit Employee"
-           DISPLAY "3. Delete Employee"
-           DISPLAY "4. Search Employee"
-           DISPLAY "5. Employee Report"
-           DISPLAY "6. Summary Report"
-           DISPLAY "7. Backup Employee File"
-           DISPLAY "8. Batch Update Employees"
+           DISPLAY "1. Add Employee (HR)"
+           DISPLAY "2. Edit Employee (HR)"
+           DISPLAY "3. Delete Employee (HR)"
+           DISPLAY "4. Search Employee (HR / ADMIN)"
+           DISPLAY "5. Employee Report (HR / ADMIN)"
+           DISPLAY "6. Summary Report (HR / ADMIN)"
+           DISPLAY "7. Backup Employee File (HR / ADMIN)"
+           DISPLAY "8. Batch Update Employees (HR)"
            DISPLAY "9. Exit"
            ACCEPT WS-OPTION
 
            EVALUATE WS-OPTION
-               WHEN 1 PERFORM ADD-EMPLOYEE
-               WHEN 2 PERFORM EDIT-EMPLOYEE
-               WHEN 3 PERFORM DELETE-EMPLOYEE
+               WHEN 1
+                    IF WS-USER-ROLE = "HR"
+                           PERFORM ADD-EMPLOYEE
+                       ELSE
+                           DISPLAY "Access Denied"
+                       END-IF
+               WHEN 2
+                    IF WS-USER-ROLE = "HR"
+                       PERFORM EDIT-EMPLOYEE
+                   ELSE
+                       DISPLAY "Access Denied"
+                   END-IF
+               WHEN 3
+                    IF WS-USER-ROLE = "HR"
+                       PERFORM DELETE-EMPLOYEE
+                   ELSE
+                       DISPLAY "Access Denied"
+                   END-IF
                WHEN 4 PERFORM SEARCH-EMPLOYEE
                WHEN 5 PERFORM EMPLOYEE-REPORT
                WHEN 6 PERFORM SUMMARY-REPORT-PROC
                WHEN 7 PERFORM BACKUP-EMPLOYEE
-               WHEN 8 PERFORM BATCH-UPDATE
+               WHEN 8
+                    IF WS-USER-ROLE = "HR"
+                       PERFORM BATCH-UPDATE
+                   ELSE
+                       DISPLAY "Access Denied"
+                   END-IF
                WHEN 9 DISPLAY "Bye"
-               WHEN OTHER DISPLAY "Invalid option"
+
+                   WHEN OTHER DISPLAY "Invalid option"
+                   STOP RUN
            END-EVALUATE
 
            IF WS-OPTION NOT = 9
                PERFORM MENU-LOOP
            END-IF.
+
+
 
        ADD-EMPLOYEE.
            OPEN I-O EMP-MASTER.
