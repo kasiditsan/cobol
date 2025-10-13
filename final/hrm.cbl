@@ -17,12 +17,12 @@
                RECORD KEY IS EMP-ID.
            SELECT INPUT-SEQ ASSIGN TO "INPUT_SEQ.DAT"
                ORGANIZATION IS SEQUENTIAL.
-           SELECT EMP-REPORT ASSIGN TO "EMPLOYEE_REPORT.DAT"
-               ORGANIZATION IS SEQUENTIAL.
-           SELECT SUMMARY-REPORT ASSIGN TO "SUMMARY_REPORT.DAT"
-               ORGANIZATION IS SEQUENTIAL.
+           SELECT EMP-REPORT ASSIGN TO "EMPLOYEE_REPORT.txt"
+               ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT SUMMARY-REPORT ASSIGN TO "SUMMARY_REPORT.txt"
+               ORGANIZATION IS LINE SEQUENTIAL.
            SELECT BACKUP-FILE ASSIGN TO "BACKUP_SEQ.DAT"
-               ORGANIZATION IS SEQUENTIAL.
+               ORGANIZATION IS LINE SEQUENTIAL.
            SELECT HR-LOG ASSIGN TO "HR_LOG.DAT"
                ORGANIZATION IS SEQUENTIAL.
 
@@ -77,44 +77,48 @@
              10 WS-HOUR        PIC 9(2).
              10 WS-MINUTE      PIC 9(2).
              10 WS-SECOND      PIC 9(2).
+       01 WS-DATE.
+           15 WS-YEAR-DIS        PIC 9(4).
+           15 FILLER PIC X(1) VALUE "/".
+           15 WS-MONTH-DIS       PIC 9(2).
+           15 FILLER PIC X(1) VALUE "/".
+           15 WS-DAY-DIS         PIC 9(2).
+           15 FILLER PIC X(2) VALUE "  ".
+           15 WS-HOUR-DIS        PIC 9(2).
+           15 FILLER PIC X(1) VALUE ":".
+           15 WS-MINUTE-DIS      PIC 9(2).
+           15 FILLER PIC X(1) VALUE ":".
+           15 WS-SECOND-DIS      PIC 9(2).
        01 EMP-REPORT-DETAIL.
            05 HEADER.
-               10 COM-NAME PIC X(15) VALUE "as".
-               10 FILLER PIC X(80) VALUE SPACES.
-.              10 WS-DATE-TIME-DIS.
-                 15 WS-YEAR-DIS        PIC 9(4).
-                 15 FILLER PIC X(1) VALUE "/".
-                 15 WS-MONTH-DIS       PIC 9(2).
-                 15 FILLER PIC X(1) VALUE "/".
-                 15 WS-DAY-DIS         PIC 9(2).
-                 15 FILLER PIC X(2) VALUE "  ".
-                 15 WS-HOUR-DIS        PIC 9(2).
-                 15 FILLER PIC X(1) VALUE ":".
-                 15 WS-MINUTE-DIS      PIC 9(2).
-                 15 FILLER PIC X(1) VALUE ":".
-                 15 WS-SECOND-DIS      PIC 9(2).
+               10 COM-NAME PIC X(15) VALUE "EMPLOYEE REPORT".
+               10 FILLER PIC X(10) VALUE ALL SPACES.
+.              10 WS-DATE-DIS PIC X(20).
+               10 FILLER PIC X(10) VALUE ALL SPACES.
                10 WS-PAGE PIC X(10) VALUE "  PAGE : 1".
-           05 SUBHEADER.
-               10 FILLER PIC X(10) VALUE "EMP ID".
-               10 FILLER PIC X(10) VALUE "       ".
-               10 FILLER PIC X(10) VALUE "NAME".
-               10 FILLER PIC X(10) VALUE "          ".
-               10 FILLER PIC X(10) VALUE "  DEPT".
-               10 FILLER PIC X(10) VALUE "         ".
-               10 FILLER PIC X(10) VALUE "SALARY".
-               10 FILLER PIC X(80) VALUE ALL "-".
-           05 DETAIL-LINE.
-               10 WS-EMP-ID     PIC 9(5) VALUE 55551.
-               10 FILLER PIC X(10) VALUE "       ".
-               10 WS-EMP-NAME   PIC X(20) VALUE "111111   1111111".
-               10 FILLER PIC X(10) VALUE "  ".
-               10 WS-DEPT-NAME  PIC X(10) VALUE "IT".
-               10 FILLER PIC X(10) VALUE "       ".
-               10 WS-SALARY     PIC 9(7)V99 VALUE 1200099.
-           05 FOOTER.
-               10 FILLER PIC X(80) VALUE ALL "=".
-               10 FILLER PIC X(80) VALUE ALL SPACES.
-               10 FILLER PIC X(20) VALUE "END OF REPORT".
+           05  SUBHEADER.
+               10  FILLER          PIC X(10)  VALUE "EMP ID".
+               10  FILLER          PIC X(10)  VALUE "       ".
+               10  FILLER          PIC X(10)  VALUE "NAME".
+               10  FILLER          PIC X(10)  VALUE "          ".
+               10  FILLER          PIC X(10)  VALUE "  DEPT".
+               10  FILLER          PIC X(10)  VALUE "         ".
+               10  FILLER          PIC X(10)  VALUE "SALARY".
+           05  DASH-LINE.
+               10  FILLER          PIC X(80)  VALUE ALL "-".
+           05  DETAIL-LINE.
+               10  WS-EMP-ID       PIC 9(5)   .
+               10  FILLER          PIC X(10)   VALUE "       ".
+               10  WS-EMP-NAME     PIC X(20)   .
+               10  FILLER          PIC X(10)   VALUE "  ".
+               10  WS-DEPT-NAME    PIC X(10)   .
+               10  FILLER          PIC X(10)   VALUE "       ".
+               10  WS-SALARY       PIC Z,ZZZ,ZZZ.99 .
+           05  EQUAL-LINE.
+               10  FILLER          PIC X(80)   VALUE ALL "=".
+           05  FOOTER.
+               10  FILLER          PIC X(80)   VALUE ALL SPACES.
+               10  FILLER          PIC X(20)   VALUE "END OF REPORT".
        PROCEDURE DIVISION.
        MAIN-PROCEDURE.
            PERFORM MENU-LOOP
@@ -212,6 +216,8 @@
            CLOSE EMP-MASTER.
 
        EMPLOYEE-REPORT.
+           OPEN OUTPUT EMP-REPORT.
+           OPEN INPUT EMP-MASTER.
            MOVE FUNCTION CURRENT-DATE TO WS-CURRENT-DATE.
            MOVE WS-YEAR TO WS-YEAR-DIS
            MOVE WS-MONTH TO WS-MONTH-DIS
@@ -219,23 +225,36 @@
            MOVE WS-HOUR TO WS-HOUR-DIS
            MOVE WS-MINUTE TO WS-MINUTE-DIS
            MOVE WS-SECOND TO WS-SECOND-DIS.
-           DISPLAY HEADER.
-           DISPLAY SUBHEADER.
-           DISPLAY DETAIL-LINE.
-           DISPLAY FOOTER.
-           *> OPEN INPUT EMP-MASTER.
-           *> PERFORM UNTIL WS-EOF-FLAG = "Y"
-           *> READ EMP-MASTER
-               *> AT END
-                   *> MOVE "Y" TO WS-EOF-FLAG
-           *> NOT AT END
-               *> PERFORM EMPLOYEE-WRITE
-                   *> END-PERFORM.
-       EMPLOYEE-WRITE.
+           MOVE WS-DATE TO WS-DATE-DIS.
 
-           *>OPEN OUTPUT EMP-REPORT.
-           *>WRITE
-           *>DISPLAY SUBHEADER.
+           WRITE  REPORT-RECORD FROM HEADER.
+           WRITE REPORT-RECORD FROM SUBHEADER.
+           WRITE REPORT-RECORD FROM DASH-LINE.
+           
+                  PERFORM UNTIL EOF-FLAG = 'Y'
+           START EMP-MASTER KEY IS
+           READ EMP-MASTER
+           
+               AT END
+                   MOVE 'Y' TO EOF-FLAG
+               NOT AT END
+                   *> Move file data to report working storage
+                   MOVE EMP-ID TO WS-EMP-ID
+                   MOVE EMP-NAME TO WS-EMP-NAME
+                   MOVE DEPT-NAME TO WS-DEPT-NAME
+                   MOVE SALARY TO WS-SALARY
+
+                   *> Write detail line to report
+                   WRITE REPORT-RECORD FROM DETAIL-LINE
+           END-READ
+       END-PERFORM
+
+           CLOSE EMP-MASTER
+           WRITE REPORT-RECORD FROM EQUAL-LINE.
+           WRITE  REPORT-RECORD FROM FOOTER.
+           CLOSE EMP-REPORT.
+
+
        SUMMARY-REPORT-PROC.
            DISPLAY "Summary Report - Not yet implemented".
 
