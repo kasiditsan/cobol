@@ -196,7 +196,8 @@
            DISPLAY "5. Employee Report"
            DISPLAY "6. Summary Report"
            DISPLAY "7. Backup Employee File"
-           DISPLAY "8. Exit"
+           DISPLAY "8. Batch Update Employees"
+           DISPLAY "9. Exit"
            ACCEPT WS-OPTION
 
            EVALUATE WS-OPTION
@@ -207,11 +208,12 @@
                WHEN 5 PERFORM EMPLOYEE-REPORT
                WHEN 6 PERFORM SUMMARY-REPORT-PROC
                WHEN 7 PERFORM BACKUP-EMPLOYEE
-               WHEN 8 DISPLAY "Bye"
+               WHEN 8 PERFORM BATCH-UPDATE
+               WHEN 9 DISPLAY "Bye"
                WHEN OTHER DISPLAY "Invalid option"
            END-EVALUATE
 
-           IF WS-OPTION NOT = 8
+           IF WS-OPTION NOT = 9
                PERFORM MENU-LOOP
            END-IF.
 
